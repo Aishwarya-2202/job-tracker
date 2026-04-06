@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Navbar from '../components/Navbar'
-import api from '../utils/api'
+import { getToken } from '../utils/auth'
 import toast from 'react-hot-toast'
 
 const STATUSES = ['applied','test','interview','offer','rejected','withdrawn']
@@ -10,6 +10,7 @@ const SOURCES = ['LinkedIn','Naukri','Indeed','Company Website','Referral','Inte
 export default function AddJob() {
   const navigate = useNavigate()
   const [loading, setLoading] = useState(false)
+  const [resumeFile, setResumeFile] = useState(null)
   const [form, setForm] = useState({
     company_name: '', role_applied: '', date_applied: '',
     status: 'applied', job_description: '', test_date: '',
@@ -21,12 +22,28 @@ export default function AddJob() {
   const handleSubmit = async (e) => {
     e.preventDefault()
     setLoading(true)
+
     try {
-      await api.post('/jobs', form)
+      // Use FormData instead of JSON so we can send the PDF file
+      const formData = new FormData()
+      Object.entries(form).forEach(([key, val]) => {
+        if (val) formData.append(key, val)
+      })
+      if (resumeFile) formData.append('resume', resumeFile)
+
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/jobs`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${getToken()}` },
+        body: formData
+      })
+
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error)
+
       toast.success('Application added!')
       navigate('/dashboard')
     } catch (err) {
-      toast.error(err.response?.data?.error || 'Failed to add')
+      toast.error(err.message || 'Failed to add')
     } finally {
       setLoading(false)
     }
@@ -97,6 +114,39 @@ export default function AddJob() {
             <textarea value={form.notes} onChange={e=>set('notes',e.target.value)} rows={3}
               className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 resize-none"
               placeholder="Any personal notes, interview tips, contacts..." />
+          </div>
+
+          {/* Resume Upload */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">Resume (PDF only, max 5MB)</label>
+            <div className={`border-2 border-dashed rounded-xl p-6 text-center transition-colors ${
+              resumeFile ? 'border-indigo-400 bg-indigo-50' : 'border-gray-200 hover:border-indigo-300'
+            }`}>
+              {resumeFile ? (
+                <div className="flex items-center justify-center gap-3">
+                  <div className="bg-indigo-100 text-indigo-700 px-3 py-1 rounded-lg text-sm font-medium">
+                    PDF
+                  </div>
+                  <span className="text-sm text-gray-700 font-medium">{resumeFile.name}</span>
+                  <button type="button" onClick={() => setResumeFile(null)}
+                    className="text-red-400 hover:text-red-600 text-sm ml-2">
+                    Remove
+                  </button>
+                </div>
+              ) : (
+                <div>
+                  <p className="text-gray-400 text-sm mb-2">Drop your resume here or click to browse</p>
+                  <p className="text-gray-300 text-xs">PDF files only</p>
+                </div>
+              )}
+              <input
+                type="file"
+                accept=".pdf"
+                onChange={e => setResumeFile(e.target.files[0] || null)}
+                className={resumeFile ? 'hidden' : 'absolute inset-0 w-full h-full opacity-0 cursor-pointer'}
+                style={resumeFile ? {} : {position:'absolute',inset:0,width:'100%',height:'100%',opacity:0,cursor:'pointer'}}
+              />
+            </div>
           </div>
 
           <div className="flex gap-3 pt-2">

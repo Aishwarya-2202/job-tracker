@@ -37,8 +37,20 @@ export default function JobCard({ job, onDelete }) {
         {job.source && (
           <p>Source: <span className="text-gray-700">{job.source}</span></p>
         )}
-        {job.resume_filename && (
-          <p>Resume: <span className="text-gray-700">{job.resume_filename}</span></p>
+        {job.resume_url ? (
+          <p className="flex items-center gap-2">
+            <span className="text-gray-500">Resume:</span>
+            
+            <a  href={job.resume_url}
+              target="_blank"
+              rel="noreferrer"
+              className="text-indigo-600 hover:text-indigo-800 font-medium underline"
+            >
+              {job.resume_filename || 'View PDF'}
+            </a>
+          </p>
+        ) : (
+          <p className="text-gray-400">No resume uploaded</p>
         )}
       </div>
 
