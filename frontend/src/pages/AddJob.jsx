@@ -27,7 +27,9 @@ export default function AddJob() {
       // Use FormData instead of JSON so we can send the PDF file
       const formData = new FormData()
       Object.entries(form).forEach(([key, val]) => {
-        if (val) formData.append(key, val)
+        if (val !== null && val !== undefined && val !== '') {
+    formData.append(key, val)
+  }
       })
       if (resumeFile) formData.append('resume', resumeFile)
 
